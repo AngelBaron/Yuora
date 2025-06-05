@@ -27,11 +27,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
 
         
-        $middleware->api(append: [
-            HandleAppearance::class,
-            HandleInertiaRequests::class,
-            'auth:sanctum',
-        ]);
+        // $middleware->api(append: [
+        //     HandleAppearance::class,
+        //     HandleInertiaRequests::class,
+        //     'auth:sanctum',
+        // ]);
 
         
     })
