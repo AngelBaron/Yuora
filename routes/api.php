@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Api\ArtistController;
 use App\Http\Controllers\Api\UserController;
-
+use App\Models\Artist;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -61,6 +61,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     //delete profile and cover photo for artist
     Route::delete('/me-artist/profile',[ArtistController::class,'deleteProfilePhoto']);
     Route::delete('/me-artist/cover',[ArtistController::class,'deleteCoverPhoto']);
+
+    //crud for songs
+    Route::post('/create-song',[ArtistController::class,'createSong']);
 
     //See Artist with id DO WHEN DOING LISTENER
     // Route::get('/artist/{id}',[ArtistController::class,'showArtist']);
