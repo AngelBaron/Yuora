@@ -71,6 +71,9 @@ class ArtistController extends Controller
         $user = $request->user();
 
         $artist = Artist::where('user_id', $user->id)->first();
+        if (!$artist) {
+            return response()->json(['message' => 'Artist not found'], 404);
+        }
 
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -100,9 +103,7 @@ class ArtistController extends Controller
             $data['cover_photo'] = $path;
         }
 
-        if (!$artist) {
-            return response()->json(['message' => 'Artist not found'], 404);
-        }
+        
 
         $artist->update($data);
 
@@ -133,6 +134,46 @@ class ArtistController extends Controller
             return response()->json(["message" => 'Cover photo has been eliminate correctly.']);
         }
         return response()->json(["message" => 'Without photo to eliminate'], 404);
+    }
+
+    public function getSong(Request $request,$id)
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id',$user->id)->first();
+        if(!$artist)
+        {
+            return response()->json([
+                'message'=>'Artist not found'
+            ],404);
+        }
+        $song = Song::where('id',$id)->where('artist_id',$artist->id)->first();
+
+        if(!$song)
+        {
+            return response()->json([
+                'message'=>'Song not found'
+            ],404);
+        }
+
+        return response()->json($song,200);
+    }
+
+    public function getSongs(Request $request)
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id', $user->id)->first();
+
+        if(!$artist)
+        {
+            return response()->json([
+                'message'=>'Artist not found'
+            ],404);
+        }
+
+        $songs = Song::where('artist_id',$artist->id)->get();
+
+        return response()->json($songs,200);
+
     }
 
     public function createSong(Request $request)
@@ -186,6 +227,48 @@ class ArtistController extends Controller
         }
         $song->delete();
         return response()->json(['message' => 'Song deleted successfully']);
+    }
+
+    public function updateSong(Request $request, $id)
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id',$user->id)->first();
+        if(!$artist)
+        {
+            return response()->json(['message'=>"Artist doesn't exist"],404);
+        }
+        $data = $request->validate(
+            [
+                'title' => 'sometimes|string|max:127',
+                'photo_song' => 'sometimes|image|max:2048'
+            ]
+        );
+        $song = Song::where('id',$id)->where('artist_id',$artist->id)->first();
+
+        if(!$song)
+        {
+            return response()->json([
+                'message'=>'Song not found'
+            ],404);
+        }
+
+        if($request->hasFile('photo_song')){
+            if($song->photo_song && Storage::disk('public')->exists($song->photo_song)){
+                Storage::disk('public')->delete($song->photo_song);
+            }
+            $data['photo_song'] = $this->storeFile($request, 'photo_song', 'photo_songs');
+        }
+        try {
+            $song->update($data);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message'=>'Operation failed'
+            ],400);
+        }
+        
+        return response()->json([
+            $song
+        ],200);
     }
 
     private function storeFile(Request $request, string $key, string $folder): ?string

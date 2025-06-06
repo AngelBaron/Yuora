@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Api\ArtistController;
 use App\Http\Controllers\Api\UserController;
-use App\Models\Artist;
+
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -64,7 +64,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     //crud for songs
     Route::post('/song',[ArtistController::class,'createSong']);
+    Route::get('/song',[ArtistController::class,'getSongs']);
+    Route::get('/song/{id}',[ArtistController::class,'getSong']);
     Route::delete('/song/{id}',[ArtistController::class,'deleteSong']);
+    Route::patch('/song/{id}',[ArtistController::class,'updateSong']);
     //See Artist with id DO WHEN DOING LISTENER
     // Route::get('/artist/{id}',[ArtistController::class,'showArtist']);
 });
