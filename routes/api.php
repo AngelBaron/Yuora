@@ -63,8 +63,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/me-artist/cover',[ArtistController::class,'deleteCoverPhoto']);
 
     //crud for songs
-    Route::post('/create-song',[ArtistController::class,'createSong']);
-
+    Route::post('/song',[ArtistController::class,'createSong']);
+    Route::delete('/song/{id}',[ArtistController::class,'deleteSong']);
     //See Artist with id DO WHEN DOING LISTENER
     // Route::get('/artist/{id}',[ArtistController::class,'showArtist']);
 });

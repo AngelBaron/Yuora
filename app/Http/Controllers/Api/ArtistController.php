@@ -144,24 +144,48 @@ class ArtistController extends Controller
         }
         $data = $request->validate([
             'title' => 'required|string|max:127',
-            'photo_song' => 'required|image|max:2048',
+            'photo_song' => 'sometimes|image|max:2048',
             'audio_song' => 'required|mimes:mp3,wav,ogg,aac,flac|max:10240'
         ]);
         //encrypt name photo and audio
-        $data['photo_song'] = $this->storeFile($request, 'photo_song', 'photo_songs');
+        if ($request->hasFile('photo_song')){
+            $data['photo_song'] = $this->storeFile($request, 'photo_song', 'photo_songs');
+        }
+        
         $data['audio_song'] = $this->storeFile($request, 'audio_song', 'audio_songs');
 
         try {
             $song = Song::create([
                 'artist_id' => $artist->id,
                 'title' => $data['title'],
-                'photo_song' => $data['photo_song'],
+                'photo_song' => $data['photo_song']?? null,
                 'audio_song' => $data['audio_song']
             ]);
         } catch (\Throwable $th) {
             return response()->json(['message' => 'Error creating song'], 500);
         }
         return response()->json($song, 200);
+    }
+
+    public function deleteSong(Request $request, $id)
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id', $user->id)->first();
+        if (!$artist) {
+            return response()->json(['message' => 'Artist not exists'], 404);
+        }
+        $song = Song::where('id', $id)->where('artist_id', $artist->id)->first();
+        if (!$song) {
+            return response()->json(['message' => 'Song not found'], 404);
+        }
+        if ($song->photo_song && Storage::disk('public')->exists($song->photo_song)) {
+            Storage::disk('public')->delete($song->photo_song);
+        }
+        if (Storage::disk('public')->exists($song->audio_song)) {
+            Storage::disk('public')->delete($song->audio_song);
+        }
+        $song->delete();
+        return response()->json(['message' => 'Song deleted successfully']);
     }
 
     private function storeFile(Request $request, string $key, string $folder): ?string
