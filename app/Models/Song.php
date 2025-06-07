@@ -10,7 +10,8 @@ class Song extends Model
         'artist_id',
         'title',
         'photo_song',
-        'audio_song'
+        'audio_song',
+        'album_id'
     ];
 
     public function genres(){
