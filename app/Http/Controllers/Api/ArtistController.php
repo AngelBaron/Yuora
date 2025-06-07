@@ -229,6 +229,36 @@ class ArtistController extends Controller
         return response()->json(['message' => 'Song deleted successfully']);
     }
 
+    public function deletePhotoSong(Request $request, $id)
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id',$user->id)->first();
+
+        if(!$artist)
+        {
+            return response()->json(['message'=>'Artist not found'],404);
+        }
+
+        $song = Song::where('id',$id)->where('artist_id',$artist->id)->first();
+
+        if(!$song)
+        {
+            return response()->json(['message'=>'Song not found'],404);
+        }
+
+        if($song->photo_song && Storage::disk('public')->exists($song->photo_song))
+        {
+            Storage::disk('public')->delete($song->photo_song);
+            $song->photo_song = null;
+
+            $song->save();
+
+            return response()->json(['message'=>'Photo has been eliminated correcly']);
+        }
+        
+        return response()->json(['message'=>'Without photo to eliminate'],404);
+    }
+
     public function updateSong(Request $request, $id)
     {
         $user = $request->user();
