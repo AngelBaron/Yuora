@@ -51,6 +51,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function album()
+    {
+        return $this->hasMany(Album::class);
+    }
+
     public function artist()
     {
         return $this->hasOne(Artist::class);

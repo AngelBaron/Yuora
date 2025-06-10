@@ -55,7 +55,6 @@ class ArtistController extends Controller
         }
         return response()->json($artist, 201);
     }
-
     public function meArtist(Request $request)
     {
         $user = $request->user();
@@ -67,7 +66,6 @@ class ArtistController extends Controller
 
         return response()->json($artist);
     }
-
     public function updateArtist(Request $request)
     {
         $user = $request->user();
@@ -111,7 +109,6 @@ class ArtistController extends Controller
 
         return response()->json($artist, 206);
     }
-
     public function deleteProfilePhoto(Request $request)
     {
         $user = $request->user();
@@ -124,7 +121,6 @@ class ArtistController extends Controller
         }
         return response()->json(["message" => 'Without photo to eliminate'], 404);
     }
-
     public function deleteCoverPhoto(Request $request)
     {
         $user = $request->user();
@@ -137,7 +133,6 @@ class ArtistController extends Controller
         }
         return response()->json(["message" => 'Without photo to eliminate'], 404);
     }
-
     public function getSong(Request $request, $id)
     {
         $user = $request->user();
@@ -157,7 +152,6 @@ class ArtistController extends Controller
 
         return response()->json($song, 200);
     }
-
     public function getSongs(Request $request)
     {
         $user = $request->user();
@@ -192,7 +186,6 @@ class ArtistController extends Controller
         }
 
         $data['audio_song'] = $this->storeFile($request, 'audio_song', 'audio_songs');
-
         try {
             $song = Song::create([
                 'artist_id' => $artist->id,
@@ -205,7 +198,6 @@ class ArtistController extends Controller
         }
         return response()->json($song, 200);
     }
-
     public function deleteSong(Request $request, $id)
     {
         $user = $request->user();
@@ -226,7 +218,6 @@ class ArtistController extends Controller
         $song->delete();
         return response()->json(['message' => 'Song deleted successfully']);
     }
-
     public function deletePhotoSong(Request $request, $id)
     {
         $user = $request->user();
@@ -253,7 +244,6 @@ class ArtistController extends Controller
 
         return response()->json(['message' => 'Without photo to eliminate'], 404);
     }
-
     public function updateSong(Request $request, $id)
     {
         $user = $request->user();
@@ -293,8 +283,35 @@ class ArtistController extends Controller
             $song
         ], 200);
     }
-
     //create album with songs or none
+    public function getAlbum(Request $request, $id)
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id', $user->id)->first();
+        if (!$artist) {
+            return response()->json(['message' => "Artist doesn't exist"], 404);
+        }
+        $album = Album::with('songs')->where('id', $id)->where('artist_id', $artist->id)->first();
+        if (!$album) {
+            return response()->json(['message' => "Album doesn't exist"], 404);
+        }
+
+        return response()->json($album, 200);
+    }
+    public function getAlbums(Request $request)
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id', $user->id)->first();
+        if (!$artist) {
+            return response()->json(['message' => "Artist doesn't exist"], 404);
+        }
+        $albums = Album::with('songs')->where('artist_id', $artist->id)->get();
+        if (!$albums) {
+            return response()->json(['message' => "Albums doesn't exist"], 404);
+        }
+
+        return response()->json($albums, 200);
+    }
     public function createAlbum(Request $request)
     {
         $user = $request->user();
@@ -325,6 +342,7 @@ class ArtistController extends Controller
             }
             //create album
             $album = Album::create([
+                'artist_id' => $user->id,
                 'photo_album' => $data['photo_album'] ?? null,
                 'name_album' => $data['name_album']
             ]);
@@ -367,6 +385,142 @@ class ArtistController extends Controller
                 'message' => 'Error creating album or songs',
                 'error' => $th->getMessage()
             ], 500);
+        }
+    }
+    public function updateAlbum(Request $request, $id)
+    {
+        $data = $request->validate([
+            'name_album' => 'sometimes|string|max:127',
+            'photo_album' => 'sometimes|image|max:2048',
+            'title_song' => 'sometimes|array',
+            'title_song.*' => 'string|max:127',
+            'audio_song' => 'sometimes|array',
+            'audio_song.*' => 'mimes:mp3,wav,ogg,aac,flac|max:10240'
+        ]);
+        $user = $request->user();
+        $artist = Artist::where('user_id', $user->id)->first();
+        if (!$artist) {
+            return response()->json(['message' => "Artist doesn't exist"], 404);
+        }
+        $album = Album::where('id', $id)->where('artist_id', $artist->id)->first();
+
+        if (!$album) {
+            return response()->json(['message' => "Album doesn't exist"], 404);
+        }
+        DB::beginTransaction();
+
+        try {
+            if (isset($data['name_album'])) {
+                $album->update([
+                    'name_album' => $data['name_album']
+                ]);
+            }
+
+            if ($request->hasFile('photo_album')) {
+                if ($album->photo_album && Storage::disk('public')->exists($album->photo_album)) {
+                    Storage::disk('public')->delete($album->photo_album);
+                }
+
+                $newPhoto = $this->storeFile($request, 'photo_album', 'photo_albums');
+                $album->update([
+                    'photo_album' => $newPhoto
+                ]);
+            }
+            if (isset($data['title_song']) && isset($data['audio_song'])) {
+                foreach ($data['title_song'] as $index => $title) {
+                    $audioFile = $request->file('audio_song')[$index] ?? null;
+
+                    if (!$audioFile) {
+                        throw new \Exception("Audio missing for song at index {$index}");
+                    }
+
+                    $audioPath = $audioFile->storeAs(
+                        'audio_songs',
+                        md5(now() . $audioFile->getClientOriginalName()) . '.' . $audioFile->getClientOriginalExtension(),
+                        'public'
+                    );
+
+                    Song::create([
+                        'artist_id' => $artist->id,
+                        'album_id' => $album->id,
+                        'title' => $title,
+                        'photo_song' => null,
+                        'audio_song' => $audioPath
+                    ]);
+                }
+            }
+            DB::commit();
+            return response()->json(Album::with('songs')->find($album->id), 200);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+
+
+            if (isset($newPhoto) && Storage::disk('public')->exists($newPhoto)) {
+                Storage::disk('public')->delete($newPhoto);
+            }
+
+            return response()->json([
+                'message' => 'Error updating album',
+                'error' => $th->getMessage()
+            ], 500);
+        }
+    }
+    public function deleteAlbum(Request $request, $id)
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id', $user->id)->first();
+
+        $all = $request->query('all');
+
+        if (!in_array($all, ['yes', 'no'])) {
+            return response()->json(['message' => 'Invalid query parameter'], 400);
+        }
+        if (!$artist) {
+            return response()->json(['message' => "Artist doesn't exist"], 404);
+        }
+        $album = Album::where('id', $id)->where('artist_id', $artist->id)->first();
+
+        if (!$album) {
+            return response()->json(['message' => "Album doesn't exist"], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            if ($all === 'yes') {
+
+                $songs = Song::where('album_id', $album->id)->get();
+                foreach ($songs as $song) {
+                    if ($song->photo_song && Storage::disk('public')->exists($song->photo_song)) {
+                        Storage::disk('public')->delete($song->photo_song);
+                    }
+                    if ($song->audio_song && Storage::disk('public')->exists($song->audio_song)) {
+                        Storage::disk('public')->delete($song->audio_song);
+                    }
+                    $song->delete();
+                }
+                if ($album->photo_album && Storage::disk('public')->exists($album->photo_album)) {
+                    Storage::disk('public')->delete($album->photo_album);
+                }
+                $album->delete();
+                DB::commit();
+                return response()->json(['message' => 'Album and all songs deleted successfully'], 200);
+            } else {
+
+                if ($album->photo_album && Storage::disk('public')->exists($album->photo_album)) {
+                    Storage::disk('public')->delete($album->photo_album);
+                }
+                $songs = Song::where('album_id', $album->id)->get();
+                foreach ($songs as $song) {
+                    $song->album_id = null;
+                    $song->save();
+                }
+                $album->delete();
+                DB::commit();
+                return response()->json(['message' => 'Album deleted successfully'], 200);
+            }
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error deleting album: ' . $th->getMessage()], 500);
         }
     }
 
