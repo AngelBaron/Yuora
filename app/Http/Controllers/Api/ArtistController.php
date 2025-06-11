@@ -523,9 +523,8 @@ class ArtistController extends Controller
             return response()->json(['message' => 'Error deleting album: ' . $th->getMessage()], 500);
         }
     }
-    
     public function deletePhotoAlbum(Request $request,$id)
-    {   
+    {
         $user = $request->user();
         $artist = Artist::where('user_id',$user->id)->first();
         if (!$artist) {
@@ -542,7 +541,21 @@ class ArtistController extends Controller
         $album->save();
         return response()->json(['message' => 'Photo album has been eliminated correctly'], 200);
     }
-
+    public function createPost(Request $request)
+    {
+    }
+    public function updatePost(Request $request, $id)
+    {
+    }
+    public function deletePost(Request $request,$id)
+    {
+    }
+    public function getPost(Request $request, $id)
+    {
+    }
+    public function getAllPosts(Request $request)
+    {
+    }
     private function storeFile(Request $request, string $key, string $folder): ?string
     {
         if (!$request->hasFile($key)) return null;
