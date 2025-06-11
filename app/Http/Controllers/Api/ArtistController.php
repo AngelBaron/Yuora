@@ -523,6 +523,25 @@ class ArtistController extends Controller
             return response()->json(['message' => 'Error deleting album: ' . $th->getMessage()], 500);
         }
     }
+    
+    public function deletePhotoAlbum(Request $request,$id)
+    {   
+        $user = $request->user();
+        $artist = Artist::where('user_id',$user->id)->first();
+        if (!$artist) {
+            return response()->json(['message' => "Artist doesn't exist"], 404);
+        }
+        $album = Album::where('id', $id)->where('artist_id', $artist->id)->first();
+        if (!$album) {
+            return response()->json(['message' => "Album doesn't exist"], 404);
+        }
+        if($album->photo_album&&Storage::disk('public')->exists($album->photo_album)){
+            Storage::disk('public')->delete($album->photo_album);
+        }
+        $album->photo_album=null;
+        $album->save();
+        return response()->json(['message' => 'Photo album has been eliminated correctly'], 200);
+    }
 
     private function storeFile(Request $request, string $key, string $folder): ?string
     {
