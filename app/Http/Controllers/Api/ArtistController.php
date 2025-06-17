@@ -543,6 +543,12 @@ class ArtistController extends Controller
     }
     public function createPost(Request $request)
     {
+        $user = $request->user();
+        $artist = Artist::where('user_id',$user->id)->first();
+        if(!$artist){
+            return response()->json(['message'=>'Artist not found'],404);
+        }
+        
     }
     public function updatePost(Request $request, $id)
     {
