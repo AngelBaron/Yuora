@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Album;
 use App\Models\Artist;
+use App\Models\Post;
 use App\Models\Song;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -327,10 +328,7 @@ class ArtistController extends Controller
             'audio_song' => 'sometimes|array',
             'audio_song.*' => 'mimes:mp3,wav,ogg,aac,flac|max:10240'
         ]);
-        if (
-            isset($data['title_song'])
-            && (!isset($data['audio_song']) || count($data['title_song']) !== count($data['audio_song']))
-        ) {
+        if (isset($data['title_song']) && (!isset($data['audio_song']) || count($data['title_song']) !== count($data['audio_song']))) {
             return response()->json(['message' => 'Title and audio song arrays must match in length'], 422);
         }
         DB::beginTransaction();
@@ -523,10 +521,10 @@ class ArtistController extends Controller
             return response()->json(['message' => 'Error deleting album: ' . $th->getMessage()], 500);
         }
     }
-    public function deletePhotoAlbum(Request $request,$id)
+    public function deletePhotoAlbum(Request $request, $id)
     {
         $user = $request->user();
-        $artist = Artist::where('user_id',$user->id)->first();
+        $artist = Artist::where('user_id', $user->id)->first();
         if (!$artist) {
             return response()->json(['message' => "Artist doesn't exist"], 404);
         }
@@ -534,34 +532,65 @@ class ArtistController extends Controller
         if (!$album) {
             return response()->json(['message' => "Album doesn't exist"], 404);
         }
-        if($album->photo_album&&Storage::disk('public')->exists($album->photo_album)){
+        if ($album->photo_album && Storage::disk('public')->exists($album->photo_album)) {
             Storage::disk('public')->delete($album->photo_album);
         }
-        $album->photo_album=null;
+        $album->photo_album = null;
         $album->save();
         return response()->json(['message' => 'Photo album has been eliminated correctly'], 200);
     }
     public function createPost(Request $request)
     {
         $user = $request->user();
-        $artist = Artist::where('user_id',$user->id)->first();
-        if(!$artist){
-            return response()->json(['message'=>'Artist not found'],404);
+        $artist = Artist::where('user_id', $user->id)->first();
+        if (!$artist) {
+            return response()->json(['message' => 'Artist not found'], 404);
         }
-        
+
+        $data = $request->validate([
+            'content' => 'required|string|max:512',
+            'media' => 'sometimes|array',
+            'media.*' => 'mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:5120',
+            'media_title' => 'sometimes|array',
+            'media_title.*' => 'string|max:127',
+            'media_description' => 'sometimes|array',
+            'media_description.*' => 'string|max:255'
+        ]);
+
+        if (isset($data['media']) && isset($data['media_title'])) {
+            if (count($data['media']) < count($data['media_title'])) {
+                return response()->json(['message' => 'Media and media_title arrays must match in length'], 422);
+            }
+        }
+
+
+        $post = Post::create([
+            'user_id' => $user->id,
+            'content' => $data['content'],
+        ]);
+
+        if (isset($data['media']) && count($data['media']) > 0) {
+            foreach ($data['media'] as $index => $mediaFile) {
+                $mediaPath = $mediaFile->storeAs('post_media', md5(now() . $mediaFile->getClientOriginalName()) . '.' . $mediaFile->getClientOriginalExtension(), 'public');
+                if (!$mediaPath) {
+                    return response()->json(['message' => 'Failed to store media file'], 500);
+                }
+                $mediaTitle = $data['media_title'][$index] ?? null;
+                $mediaDescription = $data['media_description'][$index] ?? null;
+                $post->post_media()->create([
+                    'type' => $mediaFile->getClientMimeType(),
+                    'path' => $mediaPath,
+                    'title' => $mediaTitle,
+                    'description' => $mediaDescription
+                ]);
+            }
+        }
+        return response()->json($post->load('post_media'), 201);
     }
-    public function updatePost(Request $request, $id)
-    {
-    }
-    public function deletePost(Request $request,$id)
-    {
-    }
-    public function getPost(Request $request, $id)
-    {
-    }
-    public function getAllPosts(Request $request)
-    {
-    }
+    public function updatePost(Request $request, $id) {}
+    public function deletePost(Request $request, $id) {}
+    public function getPost(Request $request, $id) {}
+    public function getAllPosts(Request $request) {}
     private function storeFile(Request $request, string $key, string $folder): ?string
     {
         if (!$request->hasFile($key)) return null;

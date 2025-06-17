@@ -77,6 +77,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/album',[ArtistController::class,'getAlbums']);
     Route::delete('/album/{id}',[ArtistController::class,'deleteAlbum']);
     Route::delete('/album/photo/{id}',[ArtistController::class,'deletePhotoAlbum']);
+
+    //create post
+    Route::post('/post',[ArtistController::class,'createPost']);
     //See Artist with id DO WHEN DOING LISTENER
     // Route::get('/artist/{id}',[ArtistController::class,'showArtist']);
 });
