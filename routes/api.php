@@ -80,6 +80,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     //create post
     Route::post('/post',[ArtistController::class,'createPost']);
+    Route::get('/post',[ArtistController::class,'getAllPosts']);
+    Route::get('/post/{id}',[ArtistController::class,'getPost']);
     //See Artist with id DO WHEN DOING LISTENER
     // Route::get('/artist/{id}',[ArtistController::class,'showArtist']);
 });
