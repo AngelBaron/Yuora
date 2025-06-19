@@ -680,6 +680,65 @@ class ArtistController extends Controller
     }
     public function deletePost(Request $request, $id) 
     {
+        $user = $request->user();
+        
+        $post = Post::with('post_media')->where('user_id',$user->id)->where('id',$id)->first();
+        if(!$post){
+            return response()->json(['message'=>'Post not found'],404);
+        }
+        if($post->user_id != $user->id){
+            return response()->json(['message'=>'You have not permission for this.'],400);
+        }
+        DB::beginTransaction();
+        try {
+            // Delete associated media files
+            foreach ($post->post_media as $media) {
+                if (Storage::disk('public')->exists($media->path)) {
+                    Storage::disk('public')->delete($media->path);
+                }
+                $media->delete();
+            }
+            // Delete the post itself
+            $post->delete();
+            DB::commit();
+            return response()->json(['message' => 'Post deleted successfully'], 200);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error deleting post: ' . $th->getMessage()], 500);
+        }
+    }
+    public function deleteMediaPost(Request $request, $id)
+    {
+        $user = $request->user();
+        $mediaPost=Post_media::where('id', $id)->first();
+
+        if(!$mediaPost)
+        {
+            return response()->json(['message'=>'Media not exists'],404);
+        }
+
+        $post = Post::where('id',$mediaPost->post_id)->first();
+
+        if($post->user_id != $user->id)
+        {
+            return response()->json(['message'=>'You have not permission for this.'],400);
+        }
+
+        DB::beginTransaction();
+        try {
+            if(Storage::disk('public')->exists($mediaPost->path)){
+                Storage::disk('public')->delete($mediaPost->path);
+            }
+            $mediaPost->delete();
+
+            DB::commit();
+
+            return response()->json(['message' => 'Media deleted successfully'], 200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            DB::rollBack();
+            return response()->json(['message'=>'Error deleting media: ' . $th->getMessage()],500);
+        }
     }
     public function getPost(Request $request, $id) 
     {
@@ -689,6 +748,10 @@ class ArtistController extends Controller
             return response()->json(['message'=>'Artist not found'],404);
         }
         $post = Post::where('user_id',$user->id)->where('id',$id)->with('post_media')->first();
+        if (!$post) {
+            # code...
+            return response()->json(['message'=>'post not exists']);
+        }
         return response()->json($post,200);
 
         
