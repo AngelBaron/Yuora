@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Album;
 use App\Models\Artist;
 use App\Models\Post;
+use App\Models\Post_media;
 use App\Models\Song;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -549,7 +550,7 @@ class ArtistController extends Controller
 
         $data = $request->validate([
             'content' => 'required|string|max:512',
-            'media' => 'sometimes|array',
+            'media' => 'sometimes|array|max:5',
             'media.*' => 'mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:5120',
             'media_title' => 'sometimes|array',
             'media_title.*' => 'string|max:127',
@@ -587,8 +588,99 @@ class ArtistController extends Controller
         }
         return response()->json($post->load('post_media'), 201);
     }
-    public function updatePost(Request $request, $id) {}
-    public function deletePost(Request $request, $id) {}
+    public function updatePost(Request $request, $id) 
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id',$user->id)->first();
+        if(!$artist)
+        {
+            return response()->json(['message'=>'Artist not found'],404);
+        }
+        $data = $request->validate([
+            'content'=>'required|string|max:512',
+            'media'=>'sometimes|array|max:5',
+            'media.*'=>'mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:5120',
+            'media_title'=>'sometimes|array',
+            'media_title.*'=>'string|max:127',
+            'media_description'=>'sometimes|array',
+            'media_description.*'=>'string|max:255'
+        ]);
+        $post = Post::where('user_id',$user->id)->where('id',$id)->first();
+        if(!$post){
+            return response()->json(['message'=>'Can not find post'],404);
+        }
+        if($post->user_id != $user->id){
+            return response()->json(['message'=>'You have not permission for this.'],400);
+        }
+        if (isset($data['media']) && isset($data['media_title'])) {
+            if (count($data['media']) < count($data['media_title'])) {
+                return response()->json(['message' => 'Media and media_title arrays must match in length'], 422);
+            }
+        }
+        // Count media files of the original post and if they exceed the limit
+        $postMediaCount = $post->post_media()->count();
+        if (isset($data['media']) && count($data['media']) + $postMediaCount > 5) {
+            return response()->json(['message' => 'You can only upload up to 5 media files per post'], 422);
+        }
+       
+        if (isset($data['media']) && count($data['media']) > 0) {
+            foreach ($data['media'] as $index => $mediaFile) {
+                $mediaPath = $mediaFile->storeAs('post_media', md5(now() . $mediaFile->getClientOriginalName()) . '.' . $mediaFile->getClientOriginalExtension(), 'public');
+                if (!$mediaPath) {
+                    return response()->json(['message' => 'Failed to store media file'], 500);
+                }
+                $mediaTitle = $data['media_title'][$index] ?? null;
+                $mediaDescription = $data['media_description'][$index] ?? null;
+                $post->post_media()->create([
+                    'type' => $mediaFile->getClientMimeType(),
+                    'path' => $mediaPath,
+                    'title' => $mediaTitle,
+                    'description' => $mediaDescription
+                ]);
+            }
+        }
+
+        try {
+            $post->update([
+                'content' => $data['content']
+            ]);
+            return response()->json([$post->load('post_media')],200);
+        } catch (\Throwable $th) {
+            return response()->json(['message'=>'The post can not update'],400);
+        }
+
+
+    }
+    public function updateMediaPost(Request $request, $id)
+    {
+        $user = $request->user();
+        $artist = Artist::where('user_id',$user->id)->first();
+        if(!$artist)
+        {
+            return response()->json(['message'=>'Artist not found'],404);
+        }
+        $postMedia = Post_media::where('id',$id)->first();
+        if(!$postMedia){
+            return response()->json(['message'=>'Media can not find'],404);
+        }
+        $post = Post::where('id',$postMedia->post_id)->first();
+        if($post->user_id != $user->id){
+            return response()->json(['message'=>'You have not permission for this.'],400);
+        }
+        $data = $request->validate([
+            'title'=>'sometimes|string|max:127',
+            'description'=>'sometimes|string|max:255'
+        ]);
+        try {
+            $postMedia->update($data);
+            return response()->json([$postMedia],200);
+        } catch (\Throwable $th) {
+            return response()->json(['message'=>'Can not update the media'],400);
+        }
+    }
+    public function deletePost(Request $request, $id) 
+    {
+    }
     public function getPost(Request $request, $id) 
     {
         $user = $request->user();
