@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ArtistController;
+use App\Http\Controllers\Api\ListenerController;
 use App\Http\Controllers\Api\UserController;
 
 use App\Models\User;
@@ -86,6 +87,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('/post/media/{id}',[ArtistController::class,'updateMediaPost']);
     Route::delete('/post/{id}',[ArtistController::class,'deletePost']);
     Route::delete('/post/media/{id}',[ArtistController::class,'deleteMediaPost']);
+
+    //Routes for listeners
+    Route::prefix('listener')->controller(ListenerController::class)->group(function(){
+        Route::get('/song/{id}','getSong');
+        Route::get('/song','getSongs');
+        Route::post('/playlist','createPlaylist');
+        Route::get('/playlist','getAllPlaylist');
+    });
+
     //See Artist with id DO WHEN DOING LISTENER
     // Route::get('/artist/{id}',[ArtistController::class,'showArtist']);
 });
