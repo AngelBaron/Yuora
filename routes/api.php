@@ -96,6 +96,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/playlist','getAllPlaylist');
     });
 
-    //See Artist with id DO WHEN DOING LISTENER
+    //See Artist with id DO WHEN DOING LISTE
     // Route::get('/artist/{id}',[ArtistController::class,'showArtist']);
 });
