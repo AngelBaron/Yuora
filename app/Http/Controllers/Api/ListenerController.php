@@ -169,6 +169,13 @@ class ListenerController extends Controller
     }
     public function getPlaylist(Request $request, $id)
     {
+        $playlist  = Playlist::where('id',$id)->first();
+
+        if(!$playlist)
+        {
+            return response()->json(['message'=>'Playlist does not exist'],404);
+        }
+        return response()->json($playlist,200);
     }
     public function comment(Request $request,$id)
     {

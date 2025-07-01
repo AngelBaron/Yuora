@@ -94,6 +94,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/song/{id}','getSong');
         Route::get('/song','getSongs');
         Route::post('/playlist','createPlaylist');
+        Route::get('/playlist/{id}','getPlaylist');
         Route::get('/playlist','getAllPlaylist');
         Route::patch('/playlist/{id}','updatePlaylist');
         Route::delete('/playlist/{id}','deletePlaylist');
