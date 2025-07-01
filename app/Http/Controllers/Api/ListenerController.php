@@ -8,6 +8,8 @@ use App\Models\Song;
 use App\Models\song_reaction;
 use Illuminate\Http\Request;
 
+use function Pest\Laravel\delete;
+
 class ListenerController extends Controller
 {
     public function getSong($id){
@@ -119,8 +121,22 @@ class ListenerController extends Controller
         return response()->json($playlist,201);
 
     }
-    public function deletePlaylist(Request $request)
+    public function deletePlaylist(Request $request,$id)
     {
+        $user = $request->user();
+        $playlist = Playlist::where('user_id',$user->id)->where('id',$id)->first();
+        if(!$playlist)
+        {
+            return response()->json(['message'=>'Playlist does not exist'],404);
+        }
+        
+        try {
+            $playlist->delete();
+            return response()->json(['message'=>'Playlist deleted successfully'],200);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json(['message'=>'Error deleting playlist'],500);
+        }
     }
     public function updatePlaylist(Request $request, $id)
     {

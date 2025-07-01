@@ -96,6 +96,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/playlist','createPlaylist');
         Route::get('/playlist','getAllPlaylist');
         Route::patch('/playlist/{id}','updatePlaylist');
+        Route::delete('/playlist/{id}','deletePlaylist');
         Route::post('/react-song/{id}','PutSongReaction');
         Route::delete('/delete-song-reaction/{id}','DeleteSongReaction');
     });
