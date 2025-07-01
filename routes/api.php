@@ -95,6 +95,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/playlist','createPlaylist');
         Route::get('/playlist','getAllPlaylist');
         Route::patch('/playlist/{id}','updatePlaylist');
+        Route::post('/react-song/{id}','PutSongReaction');
     });
 
     //See Artist with id DO WHEN DOING LISTE

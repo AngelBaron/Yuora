@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Playlist;
 use App\Models\Song;
+use App\Models\song_reaction;
 use Illuminate\Http\Request;
 
 class ListenerController extends Controller
@@ -24,6 +25,46 @@ class ListenerController extends Controller
     }
     public function PutSongReaction(Request $request, $id)
     {
+        $user = $request->user();
+
+        $type = $request->query('type');
+
+        if(!in_array($type,['like','unlike'])){
+            return response()->json(['message'=>'Invalid reaction'],401);
+        }
+
+        $song = Song::where('id',$id)->first();
+
+        if(!$song)
+        {
+            return response()->json(['message'=>'Invalid song'],401);
+        }
+
+        $songReaction = song_reaction::where('user_id',$user->id)->where('song_id',$song->id)->first();
+
+        if ($songReaction) {
+            try {
+                $songReaction->update([
+                    'type'=>$type
+                ]);
+
+                return response()->json($songReaction,201);
+            } catch (\Throwable $th) {
+                //throw $th;
+                return response()->json(['message'=>'Error updating reaction'],500);
+            }
+        } else {
+            try {
+                $songReaction = song_reaction::create([
+                    'user_id'=>$user->id,
+                    'song_id'=>$song->id,
+                    'type'=>$type
+                ]);
+            } catch (\Throwable $th) {
+                //throw $th;
+                return response()->json(['message'=>'Error creating reaction'],500);
+            }
+        }
         
     }
     public function DeleteSongReaction(Request $request, $id)
