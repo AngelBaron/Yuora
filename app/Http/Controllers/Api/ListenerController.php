@@ -67,6 +67,25 @@ class ListenerController extends Controller
     }
     public function updatePlaylist(Request $request, $id)
     {
+        $user = $request->user();
+        $playlist = Playlist::where('user_id',$user->id)->where('id',$id)->first();
+        if(!$playlist){
+            return response()->json(['message'=>'Playlist does not exist'],404);
+        }
+        $data = $request->validate([
+            'name'=>'sometimes|string|max:127',
+            'photo'=>'sometimes|image'
+        ]);
+
+        if(isset($data['photo']))
+        {
+            $data['photo']=$this->storeFile($request,'photo','playlists');
+        }
+
+        $playlist->update($data);
+
+        return response()->json([$playlist],201);
+        
     }
     public function getAllPlaylist(Request $request)
     {
