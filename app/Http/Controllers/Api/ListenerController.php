@@ -69,6 +69,22 @@ class ListenerController extends Controller
     }
     public function DeleteSongReaction(Request $request, $id)
     {
+        $user = $request->user();
+        $song = Song::find($id);
+        if(!$song){
+            return response()->json(['message'=>'Song does not exist'],404);
+        }
+
+        $song_reaction = song_reaction::where('user_id',$user->id)->where('song_id',$song->id)->first();
+
+        if(!$song_reaction)
+        {
+            return response()->json(['message'=>'Song reaction does not exist'],404);
+        }
+
+        $song_reaction->delete();
+
+        return response()->json(['message'=>'Song reaction deleted successfully'],200);
     }
     public function follow(Request $request, $id)
     {

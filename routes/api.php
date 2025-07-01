@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\UserController;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Routing\RouteUri;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
@@ -96,6 +97,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/playlist','getAllPlaylist');
         Route::patch('/playlist/{id}','updatePlaylist');
         Route::post('/react-song/{id}','PutSongReaction');
+        Route::delete('/delete-song-reaction/{id}','DeleteSongReaction');
     });
 
     //See Artist with id DO WHEN DOING LISTE
